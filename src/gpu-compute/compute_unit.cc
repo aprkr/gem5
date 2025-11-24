@@ -36,6 +36,7 @@
 #include "arch/amdgpu/common/gpu_translation_state.hh"
 #include "arch/amdgpu/common/tlb.hh"
 #include "base/output.hh"
+#include "debug/DVFSFlag.hh"
 #include "debug/GPUDisp.hh"
 #include "debug/GPUExec.hh"
 #include "debug/GPUFetch.hh"
@@ -188,7 +189,8 @@ ComputeUnit::ComputeUnit(const Params &p) : ClockedObject(p),
     globalSeqNum(0), wavefrontSize(p.wf_size),
     scoreboardCheckToSchedule(p),
     scheduleToExecute(p),
-    stats(this, p.n_wf)
+    stats(this, p.n_wf),
+    event([this]{processEvent();}, name())
 {
     // This is not currently supported and would require adding more handling
     // for system vs. device memory requests on the functional paths, so we
@@ -307,6 +309,18 @@ ComputeUnit::ComputeUnit(const Params &p) : ClockedObject(p),
 
     // Used for periodic pipeline prints
     execCycles = 0;
+}
+
+void
+ComputeUnit::startup()
+{
+    schedule(event, 100);
+}
+
+void
+ComputeUnit::processEvent()
+{
+    DPRINTF(DVFSFlag, "YOOO from a compute unit\n");
 }
 
 ComputeUnit::~ComputeUnit()

@@ -432,7 +432,13 @@ class ComputeUnit : public ClockedObject
 
     void resetRegisterPool();
 
+    void startup() override;
+
   private:
+
+    void processEvent();
+
+    EventFunctionWrapper event;
     WFBarrier&
     barrierSlot(int bar_id)
     {
