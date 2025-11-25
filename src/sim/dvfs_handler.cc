@@ -81,14 +81,15 @@ DVFSHandler::DVFSHandler(const Params &p)
         // Create a dedicated event slot per known domain ID
         UpdateEvent *event = &updatePerfLevelEvents[domain_id];
         event->domainIDToSet = d->domainID();
+        event->dvfsHandler = this;
 
         // Add domain ID to the list of domains
         domainIDList.push_back(d->domainID());
     }
-    UpdateEvent::dvfsHandler = this;
+    // UpdateEvent::dvfsHandler = this;
 }
 
-DVFSHandler *DVFSHandler::UpdateEvent::dvfsHandler;
+// DVFSHandler *DVFSHandler::UpdateEvent::dvfsHandler;
 
 DVFSHandler::DomainID
 DVFSHandler::domainID(uint32_t index) const
@@ -245,12 +246,13 @@ DVFSHandler::unserialize(CheckpointIn &cp)
 
         event->domainIDToSet = domain_ids[i];
         event->perfLevelToSet = perf_levels[i];
+        event->dvfsHandler = this;
 
         // Schedule all previously scheduled events
         if (whens[i])
             schedule(event, whens[i]);
     }
-    UpdateEvent::dvfsHandler = this;
+    // UpdateEvent::dvfsHandler = this;
 }
 
 } // namespace gem5

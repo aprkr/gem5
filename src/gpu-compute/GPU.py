@@ -294,6 +294,8 @@ class ComputeUnit(ClockedObject):
         2, "number of i-cache lines that may be buffered in the fetch unit."
     )
 
+    dvfs_handler = Param.DVFSHandler("DVFS handler")
+
 
 class Shader(ClockedObject):
     type = "Shader"

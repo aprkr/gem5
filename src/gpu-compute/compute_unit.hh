@@ -58,6 +58,7 @@
 #include "mem/port.hh"
 #include "mem/token_port.hh"
 #include "sim/clocked_object.hh"
+#include "sim/dvfs_handler.hh"
 
 namespace gem5
 {
@@ -439,6 +440,7 @@ class ComputeUnit : public ClockedObject
     void processEvent();
 
     EventFunctionWrapper event;
+    DVFSHandler *dvfs_handler;
     WFBarrier&
     barrierSlot(int bar_id)
     {

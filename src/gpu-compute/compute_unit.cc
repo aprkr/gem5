@@ -60,8 +60,10 @@
 #include "gpu-compute/vector_register_file.hh"
 #include "gpu-compute/wavefront.hh"
 #include "mem/page_table.hh"
+#include "sim/dvfs_handler.hh"
 #include "sim/process.hh"
 #include "sim/sim_exit.hh"
+
 
 namespace gem5
 {
@@ -190,7 +192,8 @@ ComputeUnit::ComputeUnit(const Params &p) : ClockedObject(p),
     scoreboardCheckToSchedule(p),
     scheduleToExecute(p),
     stats(this, p.n_wf),
-    event([this]{processEvent();}, name())
+    event([this]{processEvent();}, name()),
+    dvfs_handler(p.dvfs_handler)
 {
     // This is not currently supported and would require adding more handling
     // for system vs. device memory requests on the functional paths, so we
@@ -314,13 +317,17 @@ ComputeUnit::ComputeUnit(const Params &p) : ClockedObject(p),
 void
 ComputeUnit::startup()
 {
-    schedule(event, 100);
+    // DPRINTF(DVFSFlag, "Numdomains: %d\n", dvfs_handler->numDomains());
+    // DPRINTF(DVFSFlag, "Index 0 id?: %d\n", dvfs_handler->domainID(0));
+    // dvfs_handler->perfLevel(0, 1);
+    schedule(event, 12300000);
 }
 
 void
 ComputeUnit::processEvent()
 {
     DPRINTF(DVFSFlag, "YOOO from a compute unit\n");
+    dvfs_handler->perfLevel(0, 1);
 }
 
 ComputeUnit::~ComputeUnit()
@@ -992,6 +999,8 @@ ComputeUnit::DataPort::handleResponse(PacketPtr pkt)
             assert(pkt->req->isKernel());
             assert(pkt->req->isInvL1());
 
+            // TODO: Kick off DVFS epochs
+
             // one D-Cache inv is done, decrement counter
             dispatcher.updateInvCounter(gpuDynInst->kern_id);
 
@@ -1013,6 +1022,8 @@ ComputeUnit::DataPort::handleResponse(PacketPtr pkt)
             // read-only cache.
             assert(pkt->req->isKernel());
             assert(pkt->req->isGL2CacheFlush());
+
+            // TODO: Stop DVFS epochs and possibly set to some high freq to finish off
 
             // once flush done, decrement counter, and return whether all
             // dirty writeback operations are done for the kernel

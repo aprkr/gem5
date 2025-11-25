@@ -234,7 +234,7 @@ class DVFSHandler : public SimObject
         /**
          * Static pointer to the single DVFS hander for all the update events
          */
-        static DVFSHandler *dvfsHandler;
+        DVFSHandler *dvfsHandler;
 
         /**
          * ID of the domain that will be changed by the in-flight event
