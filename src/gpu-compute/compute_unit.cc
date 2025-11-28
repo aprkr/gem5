@@ -193,7 +193,8 @@ ComputeUnit::ComputeUnit(const Params &p) : ClockedObject(p),
     scheduleToExecute(p),
     stats(this, p.n_wf),
     event([this]{processEvent();}, name()),
-    dvfs_handler(p.dvfs_handler)
+    dvfs_handler(p.dvfs_handler),
+    epochInterval(p.epoch_interval)
 {
     // This is not currently supported and would require adding more handling
     // for system vs. device memory requests on the functional paths, so we
@@ -312,22 +313,44 @@ ComputeUnit::ComputeUnit(const Params &p) : ClockedObject(p),
 
     // Used for periodic pipeline prints
     execCycles = 0;
-}
 
-void
-ComputeUnit::startup()
-{
-    // DPRINTF(DVFSFlag, "Numdomains: %d\n", dvfs_handler->numDomains());
-    // DPRINTF(DVFSFlag, "Index 0 id?: %d\n", dvfs_handler->domainID(0));
-    // dvfs_handler->perfLevel(0, 1);
-    schedule(event, 12300000);
+    DVFSEpochs = false;
 }
 
 void
 ComputeUnit::processEvent()
 {
-    DPRINTF(DVFSFlag, "YOOO from a compute unit\n");
-    dvfs_handler->perfLevel(0, 1);
+    if (DVFSEpochs) {
+        // DPRINTF(DVFSFlag, "YOOO from a compute unit\n");
+        schedule(event, curTick() + epochInterval);
+        
+        for (int j = 0; j < numVectorALUs; ++j) {
+            for (int i = 0; i < shader->n_wf; ++i) {
+                
+
+                // Calculate IPC for last epoch if wf had a starting PC, otherwise ignore
+                // Store PC/IPC pair in some structure
+
+                // if (wfList[j][i]->getStatus() == Wavefront::status_e::S_STOPPED) {
+                //      set starting pc to zero?
+                //     continue;
+                // }
+
+
+                // Grab IPC from structure if pc matches, store in some temp array
+                // If no IPC found, default to some high value?
+
+                // Record starting PC of wavefront
+
+                // DPRINTF(DVFSFlag, "pc of WF[%d][%d]: %x\n",j,i,wfList[j][i]->pc());
+
+                
+            }
+        }
+
+        // Average IPCs together from temp array and choose a frequency, I'm thinking just have an array of IPCs that correspond to perf levels
+
+    }    
 }
 
 ComputeUnit::~ComputeUnit()
@@ -563,6 +586,8 @@ ComputeUnit::dispWorkgroup(HSAQueueEntry *task, int num_wfs_in_wg)
 {
     // If we aren't ticking, start it up!
     if (!tickEvent.scheduled()) {
+        schedule(event, nextCycle());
+        DVFSEpochs = true;
         DPRINTF(GPUDisp, "CU%d: Scheduling wakeup next cycle\n", cu_id);
         schedule(tickEvent, nextCycle());
     }
@@ -892,6 +917,8 @@ ComputeUnit::exec()
     if (!isDone()) {
         schedule(tickEvent, nextCycle());
     } else {
+        DVFSEpochs = false;
+        DPRINTF(DVFSFlag, "CU%d: Going to sleep\n, turning off DVFS\n", cu_id);
         shader->notifyCuSleep();
         DPRINTF(GPUDisp, "CU%d: Going to sleep\n", cu_id);
     }
@@ -999,8 +1026,6 @@ ComputeUnit::DataPort::handleResponse(PacketPtr pkt)
             assert(pkt->req->isKernel());
             assert(pkt->req->isInvL1());
 
-            // TODO: Kick off DVFS epochs
-
             // one D-Cache inv is done, decrement counter
             dispatcher.updateInvCounter(gpuDynInst->kern_id);
 
@@ -1022,8 +1047,6 @@ ComputeUnit::DataPort::handleResponse(PacketPtr pkt)
             // read-only cache.
             assert(pkt->req->isKernel());
             assert(pkt->req->isGL2CacheFlush());
-
-            // TODO: Stop DVFS epochs and possibly set to some high freq to finish off
 
             // once flush done, decrement counter, and return whether all
             // dirty writeback operations are done for the kernel

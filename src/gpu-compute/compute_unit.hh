@@ -433,14 +433,14 @@ class ComputeUnit : public ClockedObject
 
     void resetRegisterPool();
 
-    void startup() override;
-
   private:
 
     void processEvent();
 
     EventFunctionWrapper event;
     DVFSHandler *dvfs_handler;
+    Tick epochInterval;
+    bool DVFSEpochs;
     WFBarrier&
     barrierSlot(int bar_id)
     {
