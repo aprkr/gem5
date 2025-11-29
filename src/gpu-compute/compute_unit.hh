@@ -477,6 +477,7 @@ class ComputeUnit : public ClockedObject
     DVFSHandler *dvfs_handler;
     Tick epochInterval;
     bool DVFSEpochs;
+    const std::vector<uint32_t> ipe_values;
     AddressTable ipcTable;
     WFBarrier&
     barrierSlot(int bar_id)

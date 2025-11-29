@@ -296,6 +296,7 @@ class ComputeUnit(ClockedObject):
 
     dvfs_handler = Param.DVFSHandler("DVFS handler")
     epoch_interval = Param.Latency("200us", "DVFS epoch interval")
+    ipe_values = VectorParam.UInt32("Values to compare against for DVFS setting")
 
 
 class Shader(ClockedObject):

@@ -194,7 +194,8 @@ ComputeUnit::ComputeUnit(const Params &p) : ClockedObject(p),
     stats(this, p.n_wf),
     dvfs_handler(p.dvfs_handler),
     event([this]{processEvent();}, name()),
-    epochInterval(p.epoch_interval)
+    epochInterval(p.epoch_interval),
+    ipe_values(p.ipe_values)
 {
     // This is not currently supported and would require adding more handling
     // for system vs. device memory requests on the functional paths, so we
@@ -353,6 +354,12 @@ ComputeUnit::processEvent()
 
         uint avgIPE = sum / numToAvg;
         DPRINTF(DVFSFlag, "AvgIPE this epoch: %u\n",avgIPE);
+
+        for (int i = 0; i < ipe_values.size(); i++) {
+            if (avgIPE >= ipe_values[i]) {
+                dvfs_handler->perfLevel(0, i);
+            }
+        }
     }    
 }
 
