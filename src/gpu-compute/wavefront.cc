@@ -993,6 +993,9 @@ Wavefront::exec()
     computeUnit->shader->incVectorInstSrcOperand(ii->numSrcVecRegOperands());
     computeUnit->shader->incVectorInstDstOperand(ii->numDstVecRegOperands());
     computeUnit->stats.numInstrExecuted++;
+    if (!ii->isWaitcnt()) {
+        epochInstrs++;
+    }
     stats.numInstrExecuted++;
     computeUnit->instExecPerSimd[simdId]++;
     computeUnit->stats.execRateDist.sample(

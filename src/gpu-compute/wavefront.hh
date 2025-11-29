@@ -408,6 +408,9 @@ class Wavefront : public SimObject
         // value produced is consumed.
         statistics::Distribution readsPerWrite;
     } stats;
+
+    uint32_t epochInstrs;
+    Addr epochPC;
 };
 
 } // namespace gem5

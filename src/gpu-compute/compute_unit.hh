@@ -201,6 +201,42 @@ class WFBarrier
     int _maxBarrierCnt;
 };
 
+struct Entry {
+    Addr addr;
+    uint data;
+};
+
+class AddressTable {
+    static const int MAX_ENTRIES = 128;
+    Entry entries[MAX_ENTRIES];
+
+public:
+    bool lookup(Addr a, uint *d) {
+        for (int i = 0; i < MAX_ENTRIES; i++) {
+            if (entries[i].addr == a) {
+                *d = entries[i].data;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void insert(Addr a, uint d) {
+        for (int i = 0; i < MAX_ENTRIES; i++) {
+            if (entries[i].addr == a) {
+                entries[i].data = d;
+                return;
+            }
+        }
+        index = (index + 1) & 0x7F;
+        entries[++index] = {a, d};
+        return;
+    }
+
+private:
+    int index;
+};
+
 class ComputeUnit : public ClockedObject
 {
   public:
@@ -441,6 +477,7 @@ class ComputeUnit : public ClockedObject
     DVFSHandler *dvfs_handler;
     Tick epochInterval;
     bool DVFSEpochs;
+    AddressTable ipcTable;
     WFBarrier&
     barrierSlot(int bar_id)
     {

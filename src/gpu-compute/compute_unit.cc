@@ -192,8 +192,8 @@ ComputeUnit::ComputeUnit(const Params &p) : ClockedObject(p),
     scoreboardCheckToSchedule(p),
     scheduleToExecute(p),
     stats(this, p.n_wf),
-    event([this]{processEvent();}, name()),
     dvfs_handler(p.dvfs_handler),
+    event([this]{processEvent();}, name()),
     epochInterval(p.epoch_interval)
 {
     // This is not currently supported and would require adding more handling
@@ -321,35 +321,38 @@ void
 ComputeUnit::processEvent()
 {
     if (DVFSEpochs) {
-        // DPRINTF(DVFSFlag, "YOOO from a compute unit\n");
         schedule(event, curTick() + epochInterval);
+
+        uint sum = 0;
+        int numToAvg = 0;
         
         for (int j = 0; j < numVectorALUs; ++j) {
-            for (int i = 0; i < shader->n_wf; ++i) {
-                
+            for (int i = 0; i < shader->n_wf; ++i) {                
+                Wavefront *wf = wfList[j][i];
 
-                // Calculate IPC for last epoch if wf had a starting PC, otherwise ignore
-                // Store PC/IPC pair in some structure
+                if (wf->epochPC) {
+                    ipcTable.insert((wf->epochPC >> 3) << 3, wf->epochInstrs);
+                }
+                // TODO: What about stopped wavefronts?
 
-                // if (wfList[j][i]->getStatus() == Wavefront::status_e::S_STOPPED) {
-                //      set starting pc to zero?
-                //     continue;
-                // }
+                // Grab IPE from structure if pc matches
+                uint tableIPE = 0;
+                if (ipcTable.lookup((wf->pc() >> 3) << 3, &tableIPE)) {
+                    sum += tableIPE;
+                } else {
+                    sum += 100; // TODO: Some high IPE (could be first IPE value)
+                }
+                numToAvg++;
 
-
-                // Grab IPC from structure if pc matches, store in some temp array
-                // If no IPC found, default to some high value?
-
+                wf->epochInstrs = 0;
                 // Record starting PC of wavefront
-
-                // DPRINTF(DVFSFlag, "pc of WF[%d][%d]: %x\n",j,i,wfList[j][i]->pc());
-
-                
+                wf->epochPC = wf->pc();
             }
         }
+        // TODO: Average IPEs together from temp array and choose a frequency, I'm thinking just have an array of IPEs that correspond to perf levels
 
-        // Average IPCs together from temp array and choose a frequency, I'm thinking just have an array of IPCs that correspond to perf levels
-
+        uint avgIPE = sum / numToAvg;
+        DPRINTF(DVFSFlag, "AvgIPE this epoch: %u\n",avgIPE);
     }    
 }
 
@@ -918,7 +921,7 @@ ComputeUnit::exec()
         schedule(tickEvent, nextCycle());
     } else {
         DVFSEpochs = false;
-        DPRINTF(DVFSFlag, "CU%d: Going to sleep\n, turning off DVFS\n", cu_id);
+        DPRINTF(DVFSFlag, "CU%d: Going to sleep, turning off DVFS\n", cu_id);
         shader->notifyCuSleep();
         DPRINTF(GPUDisp, "CU%d: Going to sleep\n", cu_id);
     }
